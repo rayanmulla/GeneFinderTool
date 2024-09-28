@@ -2,8 +2,9 @@ from Bio.Seq import Seq
 from Bio import SeqIO
 import sys
 
-def translate_orfs(sequence):
-    """Translate ORFs in all six reading frames to protein sequences."""
+def translate_orfs(sequence, min_length=100):
+    """Translate ORFs in all six reading frames to protein sequences,
+    filtering ORFs based on minimum length provided in codons."""
     proteins = set()  # Use a set to store unique protein sequences
 
     def find_orfs(seq):
@@ -24,14 +25,19 @@ def translate_orfs(sequence):
             i += 1
         return orfs
 
+    def valid_orf(orf_seq):
+        """Check if the ORF sequence has the minimum number of codons."""
+        return len(orf_seq) / 3 >= min_length
+
     # Analyze forward strands
     for frame in range(3):
         frame_seq = sequence[frame:]
         orfs = find_orfs(frame_seq)
         for orf in orfs:
-            orf_seq = Seq(orf)
-            protein = orf_seq.translate(to_stop=True)
-            proteins.add(str(protein))
+            if valid_orf(orf):
+                orf_seq = Seq(orf)
+                protein = orf_seq.translate(to_stop=True)
+                proteins.add(str(protein))
 
     # Analyze reverse complement strands
     reverse_complement = str(Seq(sequence).reverse_complement())
@@ -39,9 +45,10 @@ def translate_orfs(sequence):
         frame_seq = reverse_complement[frame:]
         orfs = find_orfs(frame_seq)
         for orf in orfs:
-            orf_seq = Seq(orf)
-            protein = orf_seq.translate(to_stop=True)
-            proteins.add(str(protein))
+            if valid_orf(orf):
+                orf_seq = Seq(orf)
+                protein = orf_seq.translate(to_stop=True)
+                proteins.add(str(protein))
 
     return proteins
 
@@ -52,10 +59,14 @@ def read_fasta(file_path):
             return str(record.seq)
 
 if __name__ == "__main__":
-    # Get the file path from command line argument
+    # Get the file path from command line arguments
     file_path = sys.argv[1]
+
+    # Default minimum ORF length is 100 codons, override if passed as argument
+    min_length = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+
     sequence = read_fasta(file_path)
-    protein_strings = translate_orfs(sequence)
+    protein_strings = translate_orfs(sequence, min_length=min_length)
     
     # Print only the protein strings or indicate if none were found
     if protein_strings:
