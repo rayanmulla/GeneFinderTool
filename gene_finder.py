@@ -65,7 +65,7 @@ def gene_finder(file_path):
     return all_genes_seqs
     
 if __name__ == "__main__":
-    input_file = "GCA_000006745.1_ASM674v1_genomic.fna"
+    input_file = "doc.fna"
     genes = gene_finder(input_file)
     if genes:
         print("Found gene seqs:")
