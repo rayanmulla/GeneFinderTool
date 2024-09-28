@@ -2,9 +2,9 @@ from Bio.Seq import Seq
 from Bio import SeqIO
 import sys
 
-def translate_orfs(sequence, min_length=100):
+def translate_orfs(sequence, min_length=100, rbs_distance=20):
     """Translate ORFs in all six reading frames to protein sequences,
-    filtering ORFs based on minimum length provided in codons."""
+    filtering ORFs based on minimum length and ribosome binding site presence."""
     proteins = set()  # Use a set to store unique protein sequences
 
     def find_orfs(seq):
@@ -12,10 +12,20 @@ def translate_orfs(sequence, min_length=100):
         orfs = []  # To store ORFs as sequences
         start_codon = 'ATG'
         stop_codons = {'TAA', 'TAG', 'TGA'}
+        rbs_sequence = 'AGGAGG'  # Example Shine-Dalgarno sequence
 
         i = 0
         while i < len(seq) - 2:
             if seq[i:i+3] == start_codon:
+                # Check for RBS presence upstream of start codon
+                start_rbs_check = max(0, i - rbs_distance)
+                upstream_sequence = seq[start_rbs_check:i]
+                
+                if rbs_sequence not in upstream_sequence:
+                    i += 1
+                    continue
+
+                # Search for stop codon
                 for j in range(i+3, len(seq) - 2, 3):
                     codon = seq[j:j+3]
                     if codon in stop_codons:
@@ -59,14 +69,13 @@ def read_fasta(file_path):
             return str(record.seq)
 
 if __name__ == "__main__":
-    # Get the file path from command line arguments
+    # Get the file path and optional parameters from command line arguments
     file_path = sys.argv[1]
-
-    # Default minimum ORF length is 100 codons, override if passed as argument
     min_length = int(sys.argv[2]) if len(sys.argv) > 2 else 100
+    rbs_distance = int(sys.argv[3]) if len(sys.argv) > 3 else 20
 
     sequence = read_fasta(file_path)
-    protein_strings = translate_orfs(sequence, min_length=min_length)
+    protein_strings = translate_orfs(sequence, min_length=min_length, rbs_distance=rbs_distance)
     
     # Print only the protein strings or indicate if none were found
     if protein_strings:
@@ -74,3 +83,4 @@ if __name__ == "__main__":
             print(protein)
     else:
         print("No protein sequences found.")
+
