@@ -1,6 +1,7 @@
 from Bio.Seq import Seq
 from Bio import SeqIO
 import sys
+import os
 
 def translate_orfs(sequence, min_length=100, rbs_distance=20):
     """Translate ORFs in all six reading frames to protein sequences,
@@ -71,16 +72,25 @@ def read_fasta(file_path):
 if __name__ == "__main__":
     # Get the file path and optional parameters from command line arguments
     file_path = sys.argv[1]
-    min_length = int(sys.argv[2]) if len(sys.argv) > 2 else 100
-    rbs_distance = int(sys.argv[3]) if len(sys.argv) > 3 else 20
+    output_directory = sys.argv[2]
+    min_length = int(sys.argv[3]) if len(sys.argv) > 3 else 100
+    rbs_distance = int(sys.argv[4]) if len(sys.argv) > 4 else 20
 
     sequence = read_fasta(file_path)
     protein_strings = translate_orfs(sequence, min_length=min_length, rbs_distance=rbs_distance)
     
-    # Print only the protein strings or indicate if none were found
-    if protein_strings:
-        for protein in protein_strings:
-            print(protein)
-    else:
-        print("No protein sequences found.")
+    # Ensure the output directory exists
+    os.makedirs(output_directory, exist_ok=True)
+    
+    # Determine the output file path
+    base_name = os.path.splitext(os.path.basename(file_path))[0]  # Remove the directory and file extension
+    output_file_path = os.path.join(output_directory, base_name + "_AA_seq.txt")  # Create the full output file path
+
+    # Write protein strings to the output file
+    with open(output_file_path, 'w') as output_file:
+        if protein_strings:
+            for protein in protein_strings:
+                output_file.write(protein + '\n')
+        else:
+            output_file.write("No protein sequences found.")
 
